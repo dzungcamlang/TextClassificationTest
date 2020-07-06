@@ -89,8 +89,8 @@ class Model():
         self.pred_answer_span_dist_matrix = tf.nn.softmax(answer_span_dist_logits_matrix)
 #         self.pred_answer_span_onehot = tf.round(self.pred_answer_span_dist_matrix, name="pred")
         self.pred_answer_span = tf.argmax(self.pred_answer_span_dist_matrix, 2)
-        penalty = self.get_penalty(tf.slice(self.pred_answer_span, [0, 0], [-1, 0]), 
-                                   tf.slice(self.pred_answer_span, [0, 1], [-1, 1]))#用relu激活函数，对“左大右小"的反常情况进行惩罚
+#         penalty = self.get_penalty(tf.slice(self.pred_answer_span, [0, 0], [-1, 0]), 
+#                                    tf.slice(self.pred_answer_span, [0, 1], [-1, 1]))#用relu激活函数，对“左大右小"的反常情况进行惩罚
         
         #计算文档是否蕴含答案
         span_info = tf.layers.flatten(answer_span_dist_logits_matrix)
@@ -98,11 +98,11 @@ class Model():
         pred_if_no_answer_onehot_logits = tf.layers.dense(span_info, units=2)
         pred_if_no_answer_onehot_probs = tf.nn.softmax(pred_if_no_answer_onehot_logits)
         self.pred_if_no_answer_onehot_labels = tf.argmax(pred_if_no_answer_onehot_probs)
-        print('penalty', penalty)
+
         self.span_loss = tf.reduce_mean(\
                  tf.nn.softmax_cross_entropy_with_logits(\
-                logits=answer_span_dist_logits_matrix,labels=self.answer_span_matrix), name="span_loss") +\
-                                                                                                   penalty/100
+                logits=answer_span_dist_logits_matrix,labels=self.answer_span_matrix), name="span_loss")# +\
+                                                                                                  # penalty/100
         self.if_no_answer_loss = tf.reduce_mean(\
                  tf.nn.softmax_cross_entropy_with_logits(\
                 logits=pred_if_no_answer_onehot_logits,labels=self.if_no_answer_onehot), name="if_no_answer_loss")
@@ -152,14 +152,10 @@ class Model():
         q_b = tf.Variable(tf.random_normal([self.attention_size], stddev=0.01))
         k_w = tf.Variable(tf.random_normal([self.lstm_hidden_dim*2, self.attention_size], stddev=0.01))
         k_b = tf.Variable(tf.random_normal([self.attention_size], stddev=0.01))
-        
-#         w = tf.Variable(tf.random_normal([self.attention_size, self.attention_size], stddev=0.01))
-#         b = tf.Variable(tf.random_normal([self.attention_size], stddev=0.01))
-        
+
         text_encode = tf.tensordot(text_encode, q_w, axes=1) + q_b
         question_encode = tf.tensordot(question_encode, k_w, axes=1) + k_b
-#         question_encode_v = tf.tensordot(question_encode, w, axes=1) + b
-#         question_encode = tf.nn.sigmoid(question_encode)
+
         attention_weight = tf.matmul(text_encode, question_encode, transpose_b=True)
         attention_weight = tf.nn.sigmoid(attention_weight)
         
@@ -190,7 +186,7 @@ class Model():
         #使用rnn对问题和文档进行总结
         print('attention_weight', attention_weight)
 #         answer_span_dist = self.BiLSTM_layer_for_answer(attention_weight, batch_size, self.max_text_len)
-        answer_span_dist = tf.slice(attention_weight, [0, 0, 0], [-1, 2, self.max_text_len])
+        answer_span_dist = tf.slice(text_encode_v, [0, 0, 0], [-1, 2, self.max_text_len])
         return answer_span_dist
 
     def BiLSTM_layer_for_answer(self, lstm_inputs, batch, unit_num=None, lstm_layers=1):
