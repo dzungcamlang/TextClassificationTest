@@ -267,7 +267,7 @@ class Model():
     #训练
     def fit(self, epoch_num=10000):
         loss_batch = []
-        init_learning_rate, decay_rate = 0.0003, 1
+        init_learning_rate, decay_rate = 0.001, 1
         learning_rate_plan = [0.005, 0.0005]
 
         sample_list = self.dp.get_train_data(run_time.PATH_CORPUS_SAMPLE, if_train=True)
